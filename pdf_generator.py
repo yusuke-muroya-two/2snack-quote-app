@@ -9,23 +9,15 @@ from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, Indenter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from pathlib import Path
 from PIL import Image as PILImage
 
 # 画像フォルダのパス（Streamlit Cloud対応）
 IMAGE_FOLDER = Path(__file__).parent / "images"
 
-# 日本語フォントの設定（システムフォントを優先）
-BASE_DIR = Path(__file__).parent
-FONT_PATHS = [
-    Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),  # Linux (Streamlit Cloud)
-    Path("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),  # Linux (alternative)
-    BASE_DIR / "fonts" / "NotoSansJP-Regular.ttf",  # リポジトリ内のフォント
-    Path("C:/Windows/Fonts/meiryo.ttc"),  # Windows
-    Path("C:/Windows/Fonts/msgothic.ttc"),
-]
-
-FONT_NAME = "Meiryo"
+# フォント設定
+FONT_NAME = "HeiseiKakuGo-W5"
 FONT_REGISTERED = False
 
 def register_font():
@@ -34,11 +26,27 @@ def register_font():
     if FONT_REGISTERED:
         return
 
+    # まずCIDフォント（組み込み日本語フォント）を試す
+    try:
+        pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
+        FONT_NAME = "HeiseiKakuGo-W5"
+        FONT_REGISTERED = True
+        return
+    except Exception:
+        pass
+
+    # 次にシステムフォントを試す
+    BASE_DIR = Path(__file__).parent
+    FONT_PATHS = [
+        Path("C:/Windows/Fonts/msgothic.ttc"),  # Windows
+        Path("C:/Windows/Fonts/meiryo.ttc"),
+    ]
+
     for font_path in FONT_PATHS:
-        font_path = Path(font_path)
         if font_path.exists():
             try:
-                pdfmetrics.registerFont(TTFont(FONT_NAME, str(font_path)))
+                pdfmetrics.registerFont(TTFont("JapaneseFont", str(font_path)))
+                FONT_NAME = "JapaneseFont"
                 FONT_REGISTERED = True
                 return
             except Exception:
