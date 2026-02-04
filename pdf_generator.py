@@ -17,7 +17,7 @@ from PIL import Image as PILImage
 IMAGE_FOLDER = Path(__file__).parent / "images"
 
 # フォント設定
-FONT_NAME = "HeiseiKakuGo-W5"
+FONT_NAME = "IPAGothic"
 FONT_REGISTERED = False
 
 def register_font():
@@ -26,27 +26,22 @@ def register_font():
     if FONT_REGISTERED:
         return
 
-    # まずCIDフォント（組み込み日本語フォント）を試す
-    try:
-        pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
-        FONT_NAME = "HeiseiKakuGo-W5"
-        FONT_REGISTERED = True
-        return
-    except Exception:
-        pass
-
-    # 次にシステムフォントを試す
-    BASE_DIR = Path(__file__).parent
+    # フォントパスのリスト（優先順位順）
     FONT_PATHS = [
-        Path("C:/Windows/Fonts/msgothic.ttc"),  # Windows
-        Path("C:/Windows/Fonts/meiryo.ttc"),
+        # Linux (Streamlit Cloud) - IPAフォント
+        ("/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf", "IPAGothic"),
+        ("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf", "IPAGothic"),
+        ("/usr/share/fonts/opentype/ipafont-gothic/ipagp.ttf", "IPAGothic"),
+        # Windows
+        ("C:/Windows/Fonts/msgothic.ttc", "MSGothic"),
+        ("C:/Windows/Fonts/meiryo.ttc", "Meiryo"),
     ]
 
-    for font_path in FONT_PATHS:
-        if font_path.exists():
+    for font_path, font_name in FONT_PATHS:
+        if Path(font_path).exists():
             try:
-                pdfmetrics.registerFont(TTFont("JapaneseFont", str(font_path)))
-                FONT_NAME = "JapaneseFont"
+                pdfmetrics.registerFont(TTFont(font_name, font_path))
+                FONT_NAME = font_name
                 FONT_REGISTERED = True
                 return
             except Exception:
