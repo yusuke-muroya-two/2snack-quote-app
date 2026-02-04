@@ -12,14 +12,17 @@ from reportlab.pdfbase.ttfonts import TTFont
 from pathlib import Path
 from PIL import Image as PILImage
 
-# 画像フォルダのパス
-IMAGE_FOLDER = Path(r"G:\共有ドライブ\TWO\2foods\04_Strategic Sales\90_Sales\2Snack\00_全体ファイル\マスタ管理\画像")
+# 画像フォルダのパス（Streamlit Cloud対応）
+IMAGE_FOLDER = Path(__file__).parent / "images"
 
-# 日本語フォントの設定（システムフォントを使用）
+# 日本語フォントの設定（システムフォントを優先）
+BASE_DIR = Path(__file__).parent
 FONT_PATHS = [
-    "C:/Windows/Fonts/meiryo.ttc",
-    "C:/Windows/Fonts/msgothic.ttc",
-    "C:/Windows/Fonts/YuGothM.ttc",
+    Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),  # Linux (Streamlit Cloud)
+    Path("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),  # Linux (alternative)
+    BASE_DIR / "fonts" / "NotoSansJP-Regular.ttf",  # リポジトリ内のフォント
+    Path("C:/Windows/Fonts/meiryo.ttc"),  # Windows
+    Path("C:/Windows/Fonts/msgothic.ttc"),
 ]
 
 FONT_NAME = "Meiryo"
@@ -32,9 +35,10 @@ def register_font():
         return
 
     for font_path in FONT_PATHS:
-        if Path(font_path).exists():
+        font_path = Path(font_path)
+        if font_path.exists():
             try:
-                pdfmetrics.registerFont(TTFont(FONT_NAME, font_path))
+                pdfmetrics.registerFont(TTFont(FONT_NAME, str(font_path)))
                 FONT_REGISTERED = True
                 return
             except Exception:

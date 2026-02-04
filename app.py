@@ -9,8 +9,8 @@ from products import PRODUCTS, WATER_LOT_PATTERNS, RECIPIENTS, STAFF_LIST, SALES
 from database import save_quote, get_all_quotes, delete_quote, search_quotes
 from pdf_generator import generate_pdf, get_pdf_filename
 
-# 画像フォルダのパス
-IMAGE_FOLDER = Path(r"G:\共有ドライブ\TWO\2foods\04_Strategic Sales\90_Sales\2Snack\00_全体ファイル\マスタ管理\画像")
+# 画像フォルダのパス（Streamlit Cloud対応）
+IMAGE_FOLDER = Path(__file__).parent / "images"
 
 # ページ設定
 st.set_page_config(
