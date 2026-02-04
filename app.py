@@ -2,10 +2,25 @@
 
 import streamlit as st
 import pandas as pd
+import io
 from datetime import datetime, date
 from pathlib import Path
 
 from products import PRODUCTS, WATER_LOT_PATTERNS, RECIPIENTS, STAFF_LIST, SALES_AREAS
+
+# CSV出力用の商品リスト（short_name順）
+CSV_PRODUCT_ORDER = [
+    "香るトリュフ",
+    "焦がしガーリック",
+    "和紅茶サブレ",
+    "ガトーショコラサブレ",
+    "濃厚ショコラおかき",
+    "濃厚ショコララスク",
+    "2Gummy",
+    "2Energy",
+    "2Energy(26RN)",
+    "2Water",
+]
 from database import save_quote, get_all_quotes, delete_quote, search_quotes
 from pdf_generator import generate_pdf, get_pdf_filename
 
@@ -406,6 +421,55 @@ def collect_selected_products():
     return selected
 
 
+def generate_quotes_csv(quotes):
+    """見積履歴をCSV形式で生成"""
+    # ヘッダー行を作成
+    headers = ["対象小売", "送付先", "日付", "担当者"]
+    for product_name in CSV_PRODUCT_ORDER:
+        headers.append(product_name)
+        headers.append("特別条件")
+
+    # データ行を作成
+    rows = []
+    for quote in quotes:
+        row = [
+            quote.get('retailer', ''),
+            quote.get('recipient', ''),
+            quote.get('quote_date', ''),
+            quote.get('staff', ''),
+        ]
+
+        # 見積に含まれる商品をマッピング
+        quote_products = {}
+        for p in quote.get('products', []):
+            short_name = p.get('short_name', '')
+            quote_products[short_name] = {
+                'price': p.get('wholesale_price', ''),
+                'special': p.get('special_condition', '')
+            }
+
+        # 各商品の価格と特別条件を追加
+        for product_name in CSV_PRODUCT_ORDER:
+            if product_name in quote_products:
+                row.append(quote_products[product_name]['price'])
+                row.append(quote_products[product_name]['special'])
+            else:
+                row.append('')
+                row.append('')
+
+        rows.append(row)
+
+    # DataFrameを作成してCSV出力
+    df = pd.DataFrame(rows, columns=headers)
+
+    # CSVをバイト列として出力（BOM付きUTF-8でExcel対応）
+    output = io.BytesIO()
+    df.to_csv(output, index=False, encoding='utf-8-sig')
+    output.seek(0)
+
+    return output.getvalue()
+
+
 def show_quote_history():
     """見積履歴ページ"""
 
@@ -443,7 +507,20 @@ def show_quote_history():
     )
 
     # 履歴表示
-    st.write(f"**検索結果**: {len(quotes)}件")
+    col_result, col_csv = st.columns([3, 1])
+    with col_result:
+        st.write(f"**検索結果**: {len(quotes)}件")
+    with col_csv:
+        if quotes:
+            csv_data = generate_quotes_csv(quotes)
+            today_str = datetime.now().strftime("%Y%m%d")
+            st.download_button(
+                label="📥 CSVダウンロード",
+                data=csv_data,
+                file_name=f"見積履歴_{today_str}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
 
     if not quotes:
         st.info("履歴がありません")
