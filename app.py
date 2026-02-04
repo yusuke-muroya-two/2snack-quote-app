@@ -441,11 +441,38 @@ def generate_quotes_csv(quotes):
 
         # 見積に含まれる商品をマッピング
         quote_products = {}
+        water_items = []  # 2Water用（複数ロット対応）
+
         for p in quote.get('products', []):
             short_name = p.get('short_name', '')
-            quote_products[short_name] = {
-                'price': p.get('wholesale_price', ''),
-                'special': p.get('special_condition', '')
+
+            # 2Waterは複数ロット選択の可能性があるので別処理
+            if short_name == '2Water':
+                lot = p.get('order_lot', '')
+                # ロット名を短縮（例: "10ケース" → "10cs"）
+                lot_short = lot.replace('ケース', 'cs').replace('（パレット）', '')
+                water_items.append({
+                    'lot': lot_short,
+                    'price': p.get('wholesale_price', ''),
+                    'special': p.get('special_condition', '')
+                })
+            else:
+                quote_products[short_name] = {
+                    'price': p.get('wholesale_price', ''),
+                    'special': p.get('special_condition', '')
+                }
+
+        # 2Waterを結合形式でまとめる
+        if water_items:
+            price_parts = []
+            special_parts = []
+            for item in water_items:
+                price_parts.append(f"{item['lot']}:{item['price']}円")
+                if item['special']:
+                    special_parts.append(f"{item['lot']}:{item['special']}円")
+            quote_products['2Water'] = {
+                'price': ', '.join(price_parts),
+                'special': ', '.join(special_parts) if special_parts else ''
             }
 
         # 各商品の価格と特別条件を追加
@@ -546,7 +573,11 @@ def show_quote_history():
                 products = quote.get('products', [])
                 if products:
                     for p in products:
-                        st.caption(f"・{p['name']} - {p['wholesale_price']}円")
+                        special = p.get('special_condition', '')
+                        if special:
+                            st.caption(f"・{p['name']} - {p['wholesale_price']}円（条件: {special}円）")
+                        else:
+                            st.caption(f"・{p['name']} - {p['wholesale_price']}円")
 
             with col2:
                 # 再ダウンロードボタン
