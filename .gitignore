@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+quote_history.db
+.streamlit/secrets.toml
